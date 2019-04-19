@@ -1,0 +1,810 @@
+
+
+<html>
+  <head>
+    <script src="https://s3.amazonaws.com/stitch-sdks/js/bundles/4.3.1/stitch.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+      var unitSelected = '';
+      var xSelected;
+      var ySelected;
+      var unitDetails = [];
+      var mapX, mapY;
+      var chance = parseInt(Math.random() * 100);
+      $(function() {
+        const client = stitch.Stitch.initializeDefaultAppClient('empire-ehrsx');
+
+        const db = client.getServiceClient(stitch.RemoteMongoClient.factory, 'mongodb-atlas').db('Empire');
+
+        client.auth.loginWithCredential(new stitch.AnonymousCredential()).then(user =>
+          db.collection('maps').find({'name': 'daniele 01'}, {sort:{"tile.sort": 1}}).asArray()
+        ).then(docs => {
+          console.log(docs);
+            var mapSize = docs[0].mapSize;
+            var mapTable = '<table>';
+            var j = 0;
+            var k = 0;
+            mapX = mapSize[0];
+            mapY = mapSize[1];
+            var tile = {};
+            for(var i = 0; i< mapSize[1]; i++){
+              mapTable += '<tr>';
+              j=0;
+              for(; j < mapSize[0]; j++){
+                tile = docs[k].tile;
+                if(tile.units[0]){
+                  mapTable += '<td surface="' + tile.surface + '" x="' + tile.x + '" y="' + tile.y + '" id="' + tile.sort + '" data-units=' + JSON.stringify(tile.units) + ' class="tile ' + tile.surface + '"><img surface="' + tile.surface + '" x="' + tile.x + '" y="' + tile.y + '" id="img-' + tile.sort + '"  data-units=' + JSON.stringify(tile.units) + ' src="' + getUnitAndColor(tile.units[0].type, tile.units[0].color) + '"></td>';
+                } else {
+                  mapTable += '<td surface="' + tile.surface + '" x="' + tile.x + '" y="' + tile.y + '"  id="' + tile.sort + '" data-units="" class="tile ' + tile.surface + '"> '
+                  if(tile.surface === 'city'){
+                    /* TODO: must match this when changing hands */
+                    mapTable += '<img color="' + tile.owner + '" surface="' + tile.surface + '" data-units="" id="img-' + tile.sort + '" src="' + getUnitAndColor(tile.surface, tile.owner) + '">'
+                  }
+                  mapTable += '</td>';
+                }
+                k++
+              }
+              mapTable += '</tr>'
+            }
+            mapTable += '</table>'
+            console.log(mapTable);
+            $('#map').html(mapTable);
+            setListeners();
+        }).catch(err => {
+          console.error(err)
+        });
+      });
+      function setListeners(){
+        var tileList = document.querySelectorAll(".tile");
+        for(let i=0; i<tileList.length; i++){
+          tileList[i].addEventListener('click', viewDetail);
+        }
+      }
+      $(document).on('click', '#Q', function(){
+        console.log('Q');
+        if(unitSelected.substring(0, 3) === 'img'){
+          move('NW');
+        }
+      })
+      $(document).on('click', '#W', function(){
+        console.log('W');
+        if(unitSelected.substring(0, 3) === 'img'){
+          move('N');
+        }
+      })
+      $(document).on('click', '#E', function(){
+        console.log('E');
+        if(unitSelected.substring(0, 3) === 'img'){
+          move('NE');
+        }
+      })
+      $(document).on('click', '#A', function(){
+        console.log('A');
+        if(unitSelected.substring(0, 3) === 'img'){
+          move('W');
+        }
+      })
+      $(document).on('click', '#S', function(){
+        console.log('S');
+        if(unitSelected.substring(0, 3) === 'img'){
+          console.log('sentry');
+        }
+      })
+      $(document).on('click', '#D', function(){
+        console.log('D');
+        if(unitSelected.substring(0, 3) === 'img'){
+          move('E');
+        }
+      })
+      $(document).on('click', '#Z', function(){
+        console.log('Z');
+        if(unitSelected.substring(0, 3) === 'img'){
+          move('SW');
+        }
+      })
+      $(document).on('click', '#X', function(){
+        console.log('X');
+        if(unitSelected.substring(0, 3) === 'img'){
+          move('S');
+        }
+      })
+      $(document).on('click', '#C', function(){
+        console.log('C');
+        if(unitSelected.substring(0, 3) === 'img'){
+          move('SE');
+        }
+      })
+      $(document).on('click', '#noMoreMoves', function(){
+        console.log('noMoreMoves');
+        if(unitSelected.substring(0, 3) === 'img'){
+          if(isJson(unitDetails)){
+            console.log('Reduce moves left to 0')
+            jsonUnitDetails = JSON.parse(unitDetails);
+            jsonUnitDetails[0].movesLeft = 0;
+            unitDetails = JSON.stringify(jsonUnitDetails);
+            $('#' + unitSelected).attr('data-units', unitDetails);
+            console.log('done?');
+          }
+        }
+      })
+
+      $(document).keyup(function(event){
+        switch(event.which){
+          case 65:
+          case 37:
+            console.log(event.which, 'W', unitSelected);
+            if(unitSelected.substring(0, 3) === 'img'){
+              move('W');
+            }
+            break;
+          case 67:
+            console.log(event.which, 'SE', unitSelected);
+            if(unitSelected.substring(0, 3) === 'img'){
+              move('SE');
+            }
+            break;
+          case 68:
+          case 39:
+            console.log(event.which, 'E', unitSelected);
+            if(unitSelected.substring(0, 3) === 'img'){
+              move('E');
+            }
+            break;
+          case 69:
+            console.log(event.which, 'NE', unitSelected);
+            if(unitSelected.substring(0, 3) === 'img'){
+              move('NE');
+            }
+            break;
+          case 81:
+            console.log(event.which, 'NW', unitSelected);
+            if(unitSelected.substring(0, 3) === 'img'){
+              move('NW');
+            }
+            break;
+          case 87:
+          case 38:
+            console.log(event.which, 'N', unitSelected);
+            if(unitSelected.substring(0, 3) === 'img'){
+              move('N');
+            }
+            break;
+          case 88:
+          case 40:
+            console.log(event.which, 'S', unitSelected);
+            if(unitSelected.substring(0, 3) === 'img'){
+              move('S');
+            }
+            break;
+          case 90:
+            console.log(event.which, 'SW', unitSelected);
+            if(unitSelected.substring(0, 3) === 'img'){
+              move('SW');
+            }
+            break;
+          default:
+            console.log(event.which);
+        }
+      })
+      function isJson(str) {
+        try {
+            JSON.parse(str);
+        } catch (e) {
+            return false;
+        }
+        return true;
+      }
+
+      function viewDetail(){
+        console.log('viewDetail');
+        if(window.event.target || window.event.srcElement){
+          let theTarget = window.event.target || window.event.srcElement;
+          console.log(theTarget);
+          let units = [];
+          let jsonUnitDetails;
+          units = theTarget.getAttribute('data-units');
+          let theId = theTarget.getAttribute('id');
+          let x = parseInt(theTarget.getAttribute('x'));
+          let y = parseInt(theTarget.getAttribute('y'));
+          let oldx = xSelected;
+          let oldy = ySelected;
+          if(isJson(units)){
+            console.log(JSON.parse(units));
+            jsonUnitDetails = JSON.parse(units);
+            jsonUnitDetails[0].x = x;
+            jsonUnitDetails[0].y = y;
+            units = JSON.stringify(jsonUnitDetails);
+          }
+          console.log('try addClass with: ', theId);
+
+          console.log(theId, x, y, unitSelected, unitDetails);
+          if(unitSelected.substring(0, 3) === 'img'){
+            if((oldx - x) < 2 && (oldx - x) > -2 && (oldy - y) < 2 && (oldy - y) > -2){
+              let direction = '';
+              if(oldy > y){
+                direction += 'N';
+              } else if (y > oldy) {
+                direction += 'S'
+              }
+              if(oldx > x){
+                direction += 'W';
+              } else if (x > oldx) {
+                direction += 'E'
+              }
+              console.log(direction);
+              move(direction);
+            }
+          } else {
+            console.log('no', unitSelected);
+          }
+          unitSelected = theId;
+          xSelected = x;
+          ySelected = y;
+          unitDetails = units;
+          $('#selection').html(units);
+        } else {
+          console.log('ERROR. Problem with obtaining window event information.');
+        }
+      }
+
+      function move(direction, unit){
+        console.log('move', unitSelected, direction, unit);
+        var location = '';
+        var oldLocation = unitSelected.substring(4, 8);
+        var newX = xSelected;
+        var newY = ySelected;
+        switch(direction){
+          case 'S':
+            console.log(ySelected, mapY);
+            if(ySelected < mapY){
+              newY = ySelected + 1;
+            } else {
+              $('#selection').text('Had a bad day?');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            console.log(location, xSelected, ySelected, newX, newY);
+
+            if(newY.toString().length === 1){
+              location += '0' + String(newY);
+              console.log(location);
+            } else {
+              location += newY.toString();
+            }
+            if(newX.toString().length === 1){
+              location += '0' + String(newX);
+              console.log(location);
+            } else {
+              location += newX.toString();
+            }
+            break;
+          case 'SW':
+            console.log(ySelected, mapY);
+            if(ySelected < mapY){
+              newY = ySelected + 1;
+            } else {
+              $('#selection').text('We really do not want you to leave.');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            if(xSelected > 1){
+              newX = xSelected - 1;
+            } else {
+              $('#selection').text('Do I have to build a wall to keep you in?');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            console.log(location, xSelected, ySelected, newX, newY);
+
+            if(newY.toString().length === 1){
+              location += '0' + String(newY);
+              console.log(location);
+            } else {
+              location += newY.toString();
+            }
+            if(newX.toString().length === 1){
+              location += '0' + String(newX);
+              console.log(location);
+            } else {
+              location += newX.toString();
+            }
+            break;
+          case 'W':
+            console.log(xSelected);
+            console.log(typeof xSelected);
+            if(xSelected > 1){
+              newX = xSelected - 1;
+            } else {
+              $('#selection').text('Yours is not to reason why. Yours is to do or die. Get back in there!');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            console.log(location, xSelected, ySelected, newX, newY);
+
+            if(newY.toString().length === 1){
+              location += '0' + String(newY);
+              console.log(location);
+            } else {
+              location += newY.toString();
+            }
+            if(newX.toString().length === 1){
+              location += '0' + String(newX);
+              console.log(location);
+            } else {
+              location += newX.toString();
+            }
+            break;
+          case 'NW':
+            console.log(ySelected, mapY);
+            if(ySelected > 1){
+              newY = ySelected - 1;
+            } else {
+              $('#selection').text('Well, if that was your best move, you should call it the day.');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            if(xSelected > 1){
+              newX = xSelected - 1;
+            } else {
+              $('#selection').text('Have you never seen what happens in Minecraft?');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            console.log(location, xSelected, ySelected, newX, newY);
+
+            if(newY.toString().length === 1){
+              location += '0' + String(newY);
+              console.log(location);
+            } else {
+              location += newY.toString();
+            }
+            if(newX.toString().length === 1){
+              location += '0' + String(newX);
+              console.log(location);
+            } else {
+              location += newX.toString();
+            }
+            break;
+          case 'N':
+            console.log(ySelected, mapY);
+            if(ySelected > 1){
+              newY = ySelected - 1;
+            } else {
+              $('#selection').text('Although we do not like you, you have to stay.');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            console.log(location, xSelected, ySelected, newX, newY);
+
+            if(newY.toString().length === 1){
+              location += '0' + String(newY);
+              console.log(location);
+            } else {
+              location += newY.toString();
+            }
+            if(newX.toString().length === 1){
+              location += '0' + String(newX);
+              console.log(location);
+            } else {
+              location += newX.toString();
+            }
+            break;
+          case 'NE':
+            console.log(xSelected);
+            console.log(typeof xSelected);
+            if(xSelected < mapX){
+              newX = xSelected + 1;
+            } else {
+              $('#selection').text('It is not nighty night time yet. Get back in there and fight!');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            if(ySelected > 1){
+              newY = ySelected - 1;
+            } else {
+              $('#selection').text('You cannot leave the battlefield, you coward!');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            console.log(location, xSelected, ySelected, newX, newY);
+
+            if(newY.toString().length === 1){
+              location += '0' + String(newY);
+              console.log(location);
+            } else {
+              location += newY.toString();
+            }
+            if(newX.toString().length === 1){
+              location += '0' + String(newX);
+              console.log(location);
+            } else {
+              location += newX.toString();
+            }
+            break;
+          case 'E':
+            console.log(xSelected);
+            console.log(typeof xSelected);
+            if(xSelected < mapX){
+              newX = xSelected + 1;
+            } else {
+              $('#selection').text('The Earth is flat and you cannot walk off the edge.');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            console.log(location, xSelected, ySelected, newX, newY);
+
+            if(newY.toString().length === 1){
+              location += '0' + String(newY);
+              console.log(location);
+            } else {
+              location += newY.toString();
+            }
+            if(newX.toString().length === 1){
+              location += '0' + String(newX);
+              console.log(location);
+            } else {
+              location += newX.toString();
+            }
+            break;
+          case 'SE':
+            console.log(xSelected, ySelected);
+            console.log(typeof xSelected);
+            if(xSelected < mapX){
+              newX = xSelected + 1;
+            } else {
+              $('#selection').text('I just stopped you from falling into the abyss.');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+            if(ySelected < mapY){
+              newY = ySelected + 1;
+            } else {
+              $('#selection').text('It is a bottomless chasm. You do not want to go there. Trust me.');
+              console.log('No, you cannot go off stage.')
+              return false;
+            }
+
+            if(newY.toString().length === 1){
+              location += '0' + String(newY);
+            } else {
+              location += newY.toString();
+            }
+            if(newX.toString().length === 1){
+              location += '0' + String(newX);
+            } else {
+              location += newX.toString();
+            }
+            break;
+          default:
+            console.log('not supported yet.')
+        }
+        console.log(location, unitDetails);
+        var jsonUnitDetails;
+        if(isJson(unitDetails)){
+          jsonUnitDetails = JSON.parse(unitDetails)
+        }
+        var jsonUnitDetailsNew = [];
+        if(jsonUnitDetailsNew[0]){
+          console.log(jsonUnitDetailsNew[0])
+        }
+        var dataUnitsNew = $('#' + location).attr('data-units');
+        if(isJson(dataUnitsNew)){
+          jsonUnitDetailsNew = JSON.parse(dataUnitsNew);
+          console.log(jsonUnitDetailsNew);
+        } else {
+          jsonUnitDetailsNew.push({"type": null, "color": null, "hitPoints": null });
+        }
+        if(jsonUnitDetailsNew[0].surface){
+          console.log(jsonUnitDetailsNew[0].surface)
+        }
+        jsonUnitDetails[0].location = location;
+        jsonUnitDetailsNew[0].location = location;
+        jsonUnitDetails[0].oldLocation = oldLocation;
+        jsonUnitDetailsNew[0].oldLocation = oldLocation;
+        jsonUnitDetails[0].surface = $('#'+ oldLocation).attr('surface');
+        jsonUnitDetailsNew[0].surface = $('#'+ location).attr('surface');
+        if(jsonUnitDetailsNew[0].surface === 'city'){
+          jsonUnitDetailsNew[0].hitPoints = 1;
+          jsonUnitDetailsNew[0].color = $('#img-' + location).attr('color');
+        }
+        console.log(jsonUnitDetailsNew);
+        // =============================
+        // DO NOT MOVE IF NO MOVES LEFT.
+        if(jsonUnitDetails[0].movesLeft < 1){
+          console.log('This unit is done moving thank you very much!')
+          $('#selection').text('This unit is done moving thank you very much!');
+          return false
+        }
+        if(validateMove(oldLocation, location, jsonUnitDetails, jsonUnitDetailsNew) === true){
+          // if the move is validated, is there a collision?
+          if(jsonUnitDetailsNew[0].type !== null) {
+            if(collisionOutcome(oldLocation, location, jsonUnitDetails, jsonUnitDetailsNew) === true){
+              console.log('true. Overtake.');
+            } else {
+              console.log('false. Do not move.');
+              return false;
+            }
+          }
+          jsonUnitDetails[0].movesLeft--;
+          $('#' + location).html('<img x="' + newX + '" y="' + newY + '" id="img-' + location + '"  data-units=' + JSON.stringify(jsonUnitDetails) + ' src="' + getUnitAndColor(jsonUnitDetails[0].type, jsonUnitDetails[0].color) + '">');
+          $('#' + oldLocation).html('');
+          $('#' + oldLocation).attr('data-units', '');
+          $('#' + location).attr('data-units', JSON.stringify(jsonUnitDetails));
+        }
+        unitSelected = '';
+      }
+      function validateMove(oldLocation, location, jsonUnitDetails, jsonUnitDetailsNew){
+        console.log(oldLocation, location, jsonUnitDetails, jsonUnitDetailsNew);
+        let landUnits = ['Infantry', 'Fighter'];
+        let waterUnits = ['Fighter', 'Transport', 'Destroyer', 'Submarine', 'Cruiser', 'Carrier', 'Battleship'];
+        if(jsonUnitDetailsNew[0].surface === 'land'){
+          if(landUnits.indexOf(jsonUnitDetails[0].type) > -1){
+            console.log('this unit goes on land.');
+            return true;
+          } else {
+            console.log('this unit does not go on land.');
+            return false;
+          }
+        } else if (jsonUnitDetailsNew[0].surface === 'water'){
+          if(waterUnits.indexOf(jsonUnitDetails[0].type) > -1){
+            console.log('this unit goes on water.');
+            return true;
+          } else {
+            console.log('this unit does not go on water.');
+            return false;
+          }
+        } else if (jsonUnitDetailsNew[0].surface === 'city'){
+          if(jsonUnitDetailsNew[0].color === jsonUnitDetails[0].color){
+            console.log('enter city.');
+            return true;
+          } else {
+            console.log('have to resolve a fight if infantry.');
+            return false;
+          }
+        }
+        switch (jsonUnitDetails[0].type) {
+          case 'Infantry':
+            if($('#'+ location).attr('surface') !== $('#'+ oldLocation).attr('surface')){
+              if($('#' + location).attr('surface') === 'city'){
+                if($('#'+ location).html().indexOf(jsonUnitDetails[0].color) > -1){
+                  //
+                } else {
+                  console.log('Time to FIGHT!');
+                  if(resolveConflict(oldLocation, location, jsonUnitDetails)){
+                    console.log('won');
+                    $('#' + oldLocation).html('');
+                    $('#' + oldLocation).attr('data-units', '');
+                    $('#' + location).html('<img data-units="" id="img-' + location + '" src="' + getUnitAndColor('city', jsonUnitDetails[0].color) + '">');
+                    return false;
+                  } else {
+                    console.log('lost');
+                    $('#' + oldLocation).html('');
+                    $('#' + oldLocation).attr('data-units', '');
+                    return false;
+                  }
+
+                }
+              }
+            } else {
+              console.log('It is all good surface wise.');
+              console.log(location);
+              console.log($('#'+ location).html().indexOf(jsonUnitDetails[0].color));
+              console.log($('#' + location).attr('data-units'));
+              if($('#' + location).attr('data-units') && $('#'+ location).html().indexOf(jsonUnitDetails[0].color) < 1 && jsonUnitDetails[0].movesLeft > 0){
+                console.log('Time to FIGHT!');
+                if(resolveConflict(oldLocation, location, jsonUnitDetails)){
+                  console.log('won');
+                  $('#' + oldLocation).html('');
+                  $('#' + oldLocation).attr('data-units', '');
+                  jsonUnitDetails[0].movesLeft--;
+                  $('#' + location).html('<img x="' + $('#'+ location).attr('x') + '" y="' + $('#'+ location).attr('y') + '" id="img-' + location + '" data-units=' + JSON.stringify(jsonUnitDetails) + ' id="img-' + location + '" src="' + getUnitAndColor('Infantry', jsonUnitDetails[0].color) + '">');
+                  return false;
+                } else {
+                  console.log('lost');
+                  $('#' + oldLocation).html('');
+                  $('#' + oldLocation).attr('data-units', '');
+                  return false;
+                }
+              }
+            }
+            break;
+          default:
+            //default
+        }
+        if(jsonUnitDetailsNew[0] && jsonUnitDetails[0].color === jsonUnitDetailsNew[0].color){
+          $('#selection').text('You cannot battle your own units.');
+          console.log('You cannot battle your own units.');
+          return false;
+        }
+        return true;
+      }
+      function moveToEmpty(oldLocation, location, jsonUnitDetails){
+        $('#' + oldLocation).html('');
+        $('#' + oldLocation).attr('data-units', '');
+        jsonUnitDetails[0].movesLeft--;
+        $('#' + location).html('<img x="' + $('#'+ location).attr('x') + '" y="' + $('#'+ location).attr('y') + '" id="img-' + location + '" data-units=' + JSON.stringify(jsonUnitDetails) + ' id="img-' + location + '" src="' + getUnitAndColor('Fighter', jsonUnitDetails[0].color) + '">');
+        console.log('moved into empty square')
+      }
+      function collisionOutcome(oldLocation, location, jsonUnitDetails, jsonUnitDetailsNew){
+        if (jsonUnitDetailsNew[0].type && jsonUnitDetails[0].color !== jsonUnitDetailsNew[0].color){
+          console.log('attack!');
+          if(resolveConflict(oldLocation, location, jsonUnitDetails)){
+            console.log('won');
+            $('#' + oldLocation).html('');
+            $('#' + oldLocation).attr('data-units', '');
+            jsonUnitDetails[0].movesLeft--;
+            $('#' + location).html('<img x="' + $('#'+ location).attr('x') + '" y="' + $('#'+ location).attr('y') + '" id="img-' + location + '" data-units=' + JSON.stringify(jsonUnitDetails) + ' id="img-' + location + '" src="' + getUnitAndColor('Fighter', jsonUnitDetails[0].color) + '">');
+            return true;
+          } else {
+            console.log('lost');
+            $('#' + oldLocation).html('');
+            $('#' + oldLocation).attr('data-units', '');
+            return false;
+          }
+        }
+      }
+      function resolveConflict(oldLocation, location, jsonUnitDetails){
+        console.log('Resolve conflict.');
+        console.log(oldLocation, location, jsonUnitDetails);
+        let attacker = 'Infantry';
+        let defender = 'City'
+        let attackStrength = 100;
+        let defenseStrength = 100;
+        let attackerHitPoints = jsonUnitDetails[0].hitPoints;
+        console.log(attackerHitPoints);
+        let jsonUnitDetailsNew = $('#' + location).attr('data-units');
+        console.log(jsonUnitDetailsNew)
+        if(isJson(jsonUnitDetailsNew)){
+          jsonUnitDetailsNew = JSON.parse(jsonUnitDetailsNew);
+          console.log(jsonUnitDetailsNew);
+        }
+        if(jsonUnitDetailsNew[0]){
+          let defenderHitPoints = jsonUnitDetailsNew[0].hitPoints;
+          console.log(defenderHitPoints);
+        }
+
+        chance = parseInt(Math.random() * 100);
+        console.log(chance);
+        defenseStrength -= chance;
+        chance = parseInt(Math.random() * 100);
+        console.log(chance);
+        attackStrength -= chance;
+        if(attackStrength > defenseStrength){
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      function getUnitAndColor(unit, color) {
+        var unitAndColor = '';
+        switch(unit){
+          case 'Infantry':
+            unitAndColor = 'I';
+            break;
+          case 'Fighter':
+            unitAndColor = 'F';
+            break;
+          case 'Transport':
+            unitAndColor = 'T';
+            break;
+          case 'Destroyer':
+            unitAndColor = 'D';
+            break;
+          case 'Submarine':
+            unitAndColor = 'S';
+            break;
+          case 'Cruiser':
+            unitAndColor = 'C';
+            break;
+          case 'Carrier':
+            unitAndColor = 'R';
+            break;
+          case 'Battleship':
+            unitAndColor = 'B';
+            break;
+          case 'city':
+            unitAndColor = 'City';
+            break;
+          default:
+            unitAndColor = 'I';
+        }
+        unitAndColor += '-' + color + '.png';
+        return unitAndColor;
+      }
+    </script>
+    <style>
+      body {
+        background-color: #F5F6F7;
+        color: #494747;
+        font-family: Helvetica, sans-serif;
+      }
+      a {
+        color: #006CBC;
+      }
+      h1 {
+        font-size: 60pt;
+        font-weight: 200;
+        text-align:center;
+      }
+      h2 {
+        font-size: 24pt;
+        font-weight: 400;
+        text-align:center;
+      }
+      table {
+        border-collapse: collapse;
+        margin: 4px;
+      }
+      table, th, td {
+        border: 1px solid black;
+      }
+      th, td {
+        padding: 4px;
+        width: 30px;
+        height: 30px;
+      }
+      .brighter{
+        filter: brightness(50%);
+        border-width: 3px;
+      }
+      .land {
+        background-color:lightgreen
+      }
+      .water {
+        background-color:lightblue
+      }
+      .city {
+        background-image:url("City.png")g;
+      }
+      .content{
+
+      }
+
+      .footer {
+        font-size: 14pt;
+        font-weight: 200;
+        text-align:center;
+      }
+
+	  .logo {
+		margin-top: 20px;
+	  }
+
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <div class="title" width="30%">
+        <p>Empire</p>
+      </div>
+      <div class="buttons" width="70%">
+        <table>
+          <tr>
+            <td id="Q">Q</td>
+            <td id="W">W</td>
+            <td id="E">E</td>
+          </tr>
+          <tr>
+            <td id="A">A</td>
+            <td id="S">S</td>
+            <td id="D">D</td>
+            <td id="noMoreMoves">Done</td>
+          </tr>
+          <tr>
+            <td id="Z">Z</td>
+            <td id="X">X</td>
+            <td id="C">C</td>
+          </tr>
+        </table>
+      </div>
+      <div id="selection"></div>
+      <div id="map">
+      </div>
+
+      <div class="footer">
+        <a href="https://docs.mongodb.com/stitch/">Visit our documentation</a> to learn how to harness the power of Stitch.
+      </div>
+    </div>
+  </body>
+</html>
